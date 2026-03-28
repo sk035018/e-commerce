@@ -1,30 +1,33 @@
-# Kafka Learning with NestJS Microservices
+# Kafka + NestJS Microservices (E-commerce Backend)
 
-This repository contains a hands-on Kafka learning project built using NestJS microservices.
+## 🚀 Overview
+Event-driven microservices architecture using Kafka and NestJS.
 
-## Services
-- `api-gateway`: HTTP producer service
-- `order-service`: Kafka consumer service
+## 🧱 Architecture
 
-## Tech Stack
+```mermaid
+flowchart LR
+    Client --> API[API Gateway (NestJS)]
+    API --> Kafka[(Kafka Topic: orders)]
+    Kafka --> OrderService[Order Service (Consumer)]
+    OrderService --> DB[(Future: Database)]
+
+
+## ⚙️ Tech Stack
 - NestJS
-- Kafka
-- Docker Compose
-- KafkaJS
+- Kafka (KafkaJS)
+- Docker
+- TypeScript
 
-## Flow
-POST `/orders` → Kafka topic `orders` → consumer processes event
+## 🔄 Flow
+POST /orders → Kafka topic → consumer processes order
 
-## Run
+## 📦 Services
+- api-gateway (producer)
+- order-service (consumer)
 
-```bash
-docker compose up -d
-```
+## ▶️ How to Run
+1. docker compose up -d
+2. run both services
+3. hit POST /orders
 
-```bash
-cd api-gateway && npm install && npm run start:dev
-```
-
-```bash
-cd order-service && npm install && npm run start:dev
-```
