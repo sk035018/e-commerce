@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Order } from './order/order.entity';
-import { OrderController } from './order/order-consumer.controller';
-import { OrderService } from './order/order.service';
+import { PaymentConsumerController } from './payment/payment-consumer.controller';
+import { PaymentService } from './payment/payment.service';
+import { Payment } from './payment/payment.entity';
 import { KafkaModule } from './kafka/kafka.module';
 
 @Module({
@@ -14,14 +14,14 @@ import { KafkaModule } from './kafka/kafka.module';
       username: 'postgres',
       password: 'postgres',
       database: 'ecommerce',
-      entities: [Order],
+      entities: [Payment],
       synchronize: true,
       extra: { max: 10 },
     }),
-    TypeOrmModule.forFeature([Order]),
+    TypeOrmModule.forFeature([Payment]),
     KafkaModule,
   ],
-  controllers: [OrderController],
-  providers: [OrderService],
+  controllers: [PaymentConsumerController],
+  providers: [PaymentService],
 })
 export class AppModule {}

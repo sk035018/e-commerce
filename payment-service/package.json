@@ -1,5 +1,5 @@
 {
-  "name": "order-service",
+  "name": "payment-service",
   "version": "1.0.0",
   "scripts": {
     "start": "nest start",
@@ -10,6 +10,8 @@
     "@nestjs/core": "^11.0.0",
     "@nestjs/microservices": "^11.0.0",
     "@nestjs/typeorm": "^11.0.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
     "kafkajs": "^2.2.4",
     "pg": "^8.20.0",
     "reflect-metadata": "^0.2.2",

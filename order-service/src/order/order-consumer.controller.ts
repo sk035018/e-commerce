@@ -17,7 +17,6 @@ export class OrderController {
     @Ctx() context: KafkaContext,
   ) {
     const message = context.getMessage();
-    console.log(message, payload);
     const key = message.key?.toString();
 
     console.log('Partition:', context.getPartition());
