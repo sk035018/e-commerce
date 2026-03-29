@@ -7,10 +7,12 @@ Event-driven microservices architecture using Kafka and NestJS.
 
 ```mermaid
 flowchart LR
-    Client --> API[API Gateway (NestJS)]
-    API --> Kafka[(Kafka Topic: orders)]
-    Kafka --> OrderService[Order Service (Consumer)]
-    OrderService --> DB[(Future: Database)]
+    Client --> API["API Gateway - NestJS"]
+    API --> Kafka["Kafka Topic: orders"]
+    Kafka --> OrderService["Order Service - Consumer"]
+    OrderService --> DB["Future Database"]
+```
+
 
 
 ## ⚙️ Tech Stack
