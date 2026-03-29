@@ -1,6 +1,6 @@
 import { IsNumber, IsString } from 'class-validator';
 
-export class CreateOrderDto {
+export class AgentDto {
   @IsString()
   userId!: string;
 

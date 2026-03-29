@@ -10,4 +10,7 @@ export class Order {
 
   @Column()
   product!: string;
+
+  @Column({ name: 'price', nullable: false, type: 'bigint' })
+  price!: number;
 }

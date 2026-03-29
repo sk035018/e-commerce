@@ -11,7 +11,7 @@ import { PaymentService } from './payment.service';
 export class PaymentConsumerController {
   constructor(private readonly paymentService: PaymentService) {}
 
-  @EventPattern('order_created')
+  @EventPattern('payment_initiate')
   async handleOrderCreated(
     @Payload() payload: any,
     @Ctx() context: KafkaContext,

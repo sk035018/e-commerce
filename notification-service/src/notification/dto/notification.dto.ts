@@ -1,6 +1,6 @@
 import { IsBoolean, IsString } from 'class-validator';
 
-export class PaymentDto {
+export class NotificationDto {
   @IsString()
   userId!: string;
 

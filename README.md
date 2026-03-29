@@ -1,10 +1,10 @@
-# 🛒 E-commerce Microservices with Kafka & NestJS
+# 🛒 E-commerce Microservices with Kafka, NestJS & AI Agent
 
 ## 🚀 Overview
 
-This project demonstrates an **event-driven microservices architecture** using Kafka and NestJS.
+This project demonstrates a **production-style event-driven microservices architecture** using Kafka and NestJS, enhanced with an **AI-powered decision engine**.
 
-It simulates an e-commerce workflow with multiple services communicating asynchronously via Kafka.
+The system simulates an e-commerce workflow where services communicate asynchronously via Kafka, and an AI agent intelligently controls the flow of events.
 
 ---
 
@@ -12,16 +12,24 @@ It simulates an e-commerce workflow with multiple services communicating asynchr
 
 ```mermaid
 flowchart LR
-    Client[Client / Postman] --> API["API Gateway - NestJS"]
-    API --> OrdersTopic["Kafka Topic - orders"]
+    Client[Client / Postman] --> API["API Gateway"]
+
+    API --> OrdersTopic["Kafka Topic: orders"]
     OrdersTopic --> OrderService["Order Service"]
+
     OrderService --> DB1[(PostgreSQL)]
+    OrderService --> OrderCreated["Kafka Topic: order_created"]
 
-    OrderService --> OrderCreated["Kafka Topic - order_created"]
-    OrderCreated --> PaymentService["Payment Service"]
+    OrderCreated --> AgentService["AI Agent Service 🧠"]
+
+    AgentService --> PaymentInit["Kafka Topic: payment_initiate"]
+    AgentService --> OrderRejected["Kafka Topic: order_rejected"]
+    AgentService --> OrderReview["Kafka Topic: order_review"]
+
+    PaymentInit --> PaymentService["Payment Service"]
     PaymentService --> DB2[(PostgreSQL)]
+    PaymentService --> PaymentProcessed["Kafka Topic: payment_processed"]
 
-    PaymentService --> PaymentProcessed["Kafka Topic - payment_processed"]
     PaymentProcessed --> NotificationService["Notification Service"]
 ```
 
@@ -32,41 +40,113 @@ flowchart LR
 - **Backend Framework**: NestJS
 - **Message Broker**: Apache Kafka (KafkaJS)
 - **Database**: PostgreSQL
+- **AI Runtime**: Ollama (local LLM)
 - **Containerization**: Docker & Docker Compose
 - **ORM**: TypeORM
 
 ---
 
-## 📦 Services
+## 📦 Microservices
 
 ### 1️⃣ API Gateway
 
-- Accepts HTTP requests
+- Handles HTTP requests
 - Publishes events to Kafka (`orders` topic)
 
 ---
 
 ### 2️⃣ Order Service
 
-- Consumes `orders` events
-- Stores order in PostgreSQL
-- Emits `order_created` event
+- Consumes `orders`
+- Persists order in PostgreSQL
+- Emits `order_created`
 
 ---
 
-### 3️⃣ Payment Service
+### 3️⃣ AI Agent Service 🧠
 
 - Consumes `order_created`
+- Evaluates order using **Hybrid AI + Rules**
+- Emits:
+  - `payment_initiate`
+  - `order_rejected`
+  - `order_review`
+
+---
+
+### 4️⃣ Payment Service
+
+- Consumes `payment_initiate`
 - Processes payment (simulated)
-- Stores payment status
+- Stores result in DB
 - Emits `payment_processed`
 
 ---
 
-### 4️⃣ Notification Service
+### 5️⃣ Notification Service
 
-- Consumes `payment_processed`
+- Consumes:
+  - `payment_processed`
+  - `order_rejected`
+  - `order_review`
 - Sends notification (simulated)
+
+---
+
+## 🤖 AI Agent (Core Highlight)
+
+### 🧠 Purpose
+
+Instead of blindly processing orders, the AI agent **decides the flow dynamically**.
+
+---
+
+### ⚙️ Decision Types
+
+| Decision | Action                     |
+| -------- | -------------------------- |
+| APPROVE  | Proceed to payment         |
+| REJECT   | Stop processing            |
+| REVIEW   | Flag for manual inspection |
+
+---
+
+## 🧠 Hybrid Decision Engine
+
+The system uses a **production-style hybrid approach**:
+
+---
+
+### 1️⃣ Rule-Based Guardrails (Fast & Deterministic)
+
+- Low price → APPROVE
+- High price → REVIEW
+- Blocked user → REJECT
+
+---
+
+### 2️⃣ AI-Based Evaluation (Flexible)
+
+- Uses local LLM via Ollama
+- Handles ambiguous cases
+- Runs fully offline (no API cost)
+
+---
+
+### 3️⃣ Resilient Output Handling
+
+LLMs are non-deterministic, so:
+
+- AI output is parsed safely
+- Keywords extracted (APPROVE / REJECT / REVIEW)
+- Invalid responses fallback to safe default
+
+---
+
+### 4️⃣ Fallback Strategy
+
+- AI failure or timeout → `REVIEW`
+- Ensures system stability
 
 ---
 
@@ -81,11 +161,11 @@ Order Service → DB
    ↓
 Kafka (order_created)
    ↓
-Payment Service → DB
+AI Agent Service 🧠
    ↓
-Kafka (payment_processed)
+Kafka (payment_initiate / order_rejected / order_review)
    ↓
-Notification Service
+Payment / Notification Services
 ```
 
 ---
@@ -98,7 +178,7 @@ Notification Service
 docker compose up -d
 ```
 
-Services started:
+Includes:
 
 - Kafka
 - Zookeeper
@@ -107,18 +187,33 @@ Services started:
 
 ---
 
-### 2. Run Services
+### 2. Install Ollama (for AI)
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+Run lightweight model:
+
+```bash
+ollama run tinyllama
+```
+
+---
+
+### 3. Run Services
 
 ```bash
 cd api-gateway && npm install && npm run start:dev
 cd order-service && npm install && npm run start:dev
+cd agent-service && npm install && npm run start:dev
 cd payment-service && npm install && npm run start:dev
 cd notification-service && npm install && npm run start:dev
 ```
 
 ---
 
-### 3. Test API
+### 4. Test API
 
 ```bash
 POST http://localhost:3000/orders
@@ -126,56 +221,6 @@ Content-Type: application/json
 
 {
   "userId": "user1",
-  "product": "phone"
-}
+  "product": "phone",
+  "price": 200
 ```
-
----
-
-## 🗄️ Database Access (pgAdmin)
-
-- URL: http://localhost:5050
-- Email: `admin@admin.com`
-- Password: `admin`
-
-Connection config:
-
-- Host: `postgres`
-- Port: `5432`
-
----
-
-## 🎯 Key Features
-
-- Event-driven architecture using Kafka
-- Microservices communication via async events
-- Chained service workflow (Order → Payment → Notification)
-- PostgreSQL persistence
-- Dockerized infrastructure
-- Scalable and loosely coupled design
-
----
-
-## 🚀 Future Enhancements
-
-- Retry mechanism & Dead Letter Queue (DLQ)
-- Redis integration (caching / state)
-- AI Agent for intelligent decision-making
-- Observability (logging, tracing)
-- API rate limiting
-
----
-
-## 💡 Learning Outcomes
-
-- Kafka fundamentals (topics, partitions, consumer groups)
-- Event-driven system design
-- Microservices architecture with NestJS
-- Async communication patterns
-- Database integration with TypeORM
-
----
-
-## 📌 Author
-
-Shivam Kumar
