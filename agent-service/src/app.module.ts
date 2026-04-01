@@ -1,11 +1,20 @@
 import { Module } from '@nestjs/common';
 import { AgentController } from './agent/agent.controller';
 import { AgentService } from './agent/agent.service';
-import { KafkaModule } from './kafka/kafka.module';
+
+import { DecisionEngine } from './agent/decision/decision.engine';
+import { RuleEngine } from './agent/decision/rule.engine';
+import { ValidatorService } from './agent/decision/validator.service';
+import { LLMService } from './agent/decision/llm.service';
 
 @Module({
-  imports: [KafkaModule],
   controllers: [AgentController],
-  providers: [AgentService],
+  providers: [
+    AgentService,
+    DecisionEngine,
+    RuleEngine,
+    ValidatorService,
+    LLMService,
+  ],
 })
 export class AppModule {}

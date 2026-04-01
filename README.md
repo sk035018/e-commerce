@@ -2,9 +2,9 @@
 
 ## 🚀 Overview
 
-This project demonstrates a **production-style event-driven microservices architecture** using Kafka and NestJS, enhanced with an **AI-powered decision engine**.
+This project demonstrates a **production-style event-driven microservices architecture** using Kafka and NestJS, enhanced with a **hybrid AI-powered decision engine**.
 
-The system simulates an e-commerce workflow where services communicate asynchronously via Kafka, and an AI agent intelligently controls the flow of events.
+The system simulates an e-commerce workflow where services communicate asynchronously via Kafka, and an AI agent **safely controls the flow of events using rules + LLM reasoning**.
 
 ---
 
@@ -20,7 +20,13 @@ flowchart LR
     OrderService --> DB1[(PostgreSQL)]
     OrderService --> OrderCreated["Kafka Topic: order_created"]
 
-    OrderCreated --> AgentService["AI Agent Service 🧠"]
+    OrderCreated --> AgentController["Agent Controller"]
+    AgentController --> AgentService["Agent Service (Orchestration)"]
+    AgentService --> DecisionEngine["Decision Engine"]
+
+    DecisionEngine --> RuleEngine["Rule Engine"]
+    DecisionEngine --> LLM["LLM (Ollama)"]
+    DecisionEngine --> Validator["Validator"]
 
     AgentService --> PaymentInit["Kafka Topic: payment_initiate"]
     AgentService --> OrderRejected["Kafka Topic: order_rejected"]
@@ -37,12 +43,12 @@ flowchart LR
 
 ## ⚙️ Tech Stack
 
-- **Backend Framework**: NestJS
-- **Message Broker**: Apache Kafka (KafkaJS)
-- **Database**: PostgreSQL
-- **AI Runtime**: Ollama (local LLM)
-- **Containerization**: Docker & Docker Compose
-- **ORM**: TypeORM
+* **Backend Framework**: NestJS
+* **Message Broker**: Apache Kafka (KafkaJS)
+* **Database**: PostgreSQL
+* **AI Runtime**: Ollama (LLaMA 3)
+* **Containerization**: Docker & Docker Compose
+* **ORM**: TypeORM
 
 ---
 
@@ -50,46 +56,49 @@ flowchart LR
 
 ### 1️⃣ API Gateway
 
-- Handles HTTP requests
-- Publishes events to Kafka (`orders` topic)
+* Handles HTTP requests
+* Publishes events to Kafka (`orders` topic)
 
 ---
 
 ### 2️⃣ Order Service
 
-- Consumes `orders`
-- Persists order in PostgreSQL
-- Emits `order_created`
+* Consumes `orders`
+* Persists order in PostgreSQL
+* Emits `order_created`
 
 ---
 
-### 3️⃣ AI Agent Service 🧠
+### 3️⃣ AI Agent Service 🧠 (Core Highlight)
 
-- Consumes `order_created`
-- Evaluates order using **Hybrid AI + Rules**
-- Emits:
-  - `payment_initiate`
-  - `order_rejected`
-  - `order_review`
+* Consumes `order_created`
+* Uses **Agent Service (orchestration layer)**
+* Executes hybrid decision pipeline
+* Emits:
+
+  * `payment_initiate`
+  * `order_rejected`
+  * `order_review`
 
 ---
 
 ### 4️⃣ Payment Service
 
-- Consumes `payment_initiate`
-- Processes payment (simulated)
-- Stores result in DB
-- Emits `payment_processed`
+* Consumes `payment_initiate`
+* Processes payment (simulated)
+* Stores result in DB
+* Emits `payment_processed`
 
 ---
 
 ### 5️⃣ Notification Service
 
-- Consumes:
-  - `payment_processed`
-  - `order_rejected`
-  - `order_review`
-- Sends notification (simulated)
+* Consumes:
+
+  * `payment_processed`
+  * `order_rejected`
+  * `order_review`
+* Sends notification (simulated)
 
 ---
 
@@ -97,56 +106,114 @@ flowchart LR
 
 ### 🧠 Purpose
 
-Instead of blindly processing orders, the AI agent **decides the flow dynamically**.
-
----
-
-### ⚙️ Decision Types
-
-| Decision | Action                     |
-| -------- | -------------------------- |
-| APPROVE  | Proceed to payment         |
-| REJECT   | Stop processing            |
-| REVIEW   | Flag for manual inspection |
+Instead of blindly processing orders, the AI agent **controls system flow dynamically while maintaining strict safety guarantees**.
 
 ---
 
 ## 🧠 Hybrid Decision Engine
 
-The system uses a **production-style hybrid approach**:
+The system follows a **production-grade hybrid pattern**:
 
 ---
 
-### 1️⃣ Rule-Based Guardrails (Fast & Deterministic)
+### 1️⃣ Rule-Based Guardrails (Authoritative)
 
-- Low price → APPROVE
-- High price → REVIEW
-- Blocked user → REJECT
+* Invalid user → **REJECT**
+* High price (> 50,000) → **REVIEW**
+* Otherwise → **APPROVE**
 
----
-
-### 2️⃣ AI-Based Evaluation (Flexible)
-
-- Uses local LLM via Ollama
-- Handles ambiguous cases
-- Runs fully offline (no API cost)
+👉 These rules are **final authority**
 
 ---
 
-### 3️⃣ Resilient Output Handling
+### 2️⃣ LLM-Based Evaluation (Advisory)
 
-LLMs are non-deterministic, so:
+* Uses local LLM via Ollama
+* Invoked **only when rule decision = APPROVE**
+* Helps identify ambiguous or risky cases
 
-- AI output is parsed safely
-- Keywords extracted (APPROVE / REJECT / REVIEW)
-- Invalid responses fallback to safe default
+---
+
+### 3️⃣ Validation Layer (Critical Safety)
+
+Ensures:
+
+* LLM **cannot override strict rules**
+* LLM can only **increase risk level**
+
+#### Example:
+
+| Rule    | LLM     | Final  |
+| ------- | ------- | ------ |
+| APPROVE | REVIEW  | REVIEW |
+| APPROVE | REJECT  | REJECT |
+| REJECT  | APPROVE | REJECT |
 
 ---
 
 ### 4️⃣ Fallback Strategy
 
-- AI failure or timeout → `REVIEW`
-- Ensures system stability
+* Invalid / malformed LLM response → `REVIEW`
+* Ensures **system stability**
+
+---
+
+## 🔍 Observability (Structured Logging)
+
+Structured logs provide full traceability of decision flow.
+
+---
+
+### 📌 Decision Trace
+
+```json
+{
+  "event": "ORDER_PROCESSED",
+  "orderId": 42,
+  "userId": "blocked-user",
+  "price": 40000,
+  "ruleDecision": "REJECT",
+  "llmDecision": null,
+  "finalDecision": "REJECT"
+}
+```
+
+---
+
+### 📌 LLM Response
+
+```json
+{
+  "event": "LLM_RESPONSE",
+  "orderId": 41,
+  "raw": "{\"decision\": \"APPROVE\"}"
+}
+```
+
+---
+
+### 📌 Processing Time
+
+```json
+{
+  "event": "PROCESSING_TIME",
+  "orderId": 42,
+  "durationMs": 1
+}
+```
+
+---
+
+### 📌 Override Protection
+
+```json
+{
+  "event": "LLM_OVERRIDE_BLOCKED",
+  "orderId": 50,
+  "ruleDecision": "REJECT",
+  "llmDecision": "APPROVE"
+}
+```
 
 ---
 
@@ -161,7 +228,11 @@ Order Service → DB
    ↓
 Kafka (order_created)
    ↓
-AI Agent Service 🧠
+Agent Controller
+   ↓
+Agent Service
+   ↓
+Decision Engine (Rule → LLM → Validator)
    ↓
 Kafka (payment_initiate / order_rejected / order_review)
    ↓
@@ -180,23 +251,23 @@ docker compose up -d
 
 Includes:
 
-- Kafka
-- Zookeeper
-- PostgreSQL
-- pgAdmin
+* Kafka
+* Zookeeper
+* PostgreSQL
+* pgAdmin
 
 ---
 
-### 2. Install Ollama (for AI)
+### 2. Install Ollama
 
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
 ```
 
-Run lightweight model:
+Run model:
 
 ```bash
-ollama run tinyllama
+ollama run llama3
 ```
 
 ---
@@ -223,4 +294,40 @@ Content-Type: application/json
   "userId": "user1",
   "product": "phone",
   "price": 200
+}
 ```
+
+---
+
+## 🎯 Current Scope
+
+* Event-driven microservices
+* Hybrid AI decision engine
+* Safe LLM integration
+* Structured observability
+
+---
+
+## 🔮 Future Improvements
+
+* Persist decisions & approved payments
+* Add monitoring dashboards (Grafana / Prometheus)
+* Retry & circuit breaker for LLM
+* Evaluation datasets for model tuning
+
+---
+
+## 🏁 Conclusion
+
+This project demonstrates how to integrate LLMs into backend systems **safely and realistically** by combining:
+
+* Deterministic rules
+* AI-assisted reasoning
+* Validation safeguards
+* Observability
+
+---
+
+## 📌 Note
+
+Project intentionally stops at the decision stage. Payment persistence and downstream guarantees are planned as future enhancements.

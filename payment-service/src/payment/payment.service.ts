@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Payment } from './payment.entity';
-import { KafkaProducerService } from 'src/kafka/kafka-producer.service';
+import { KafkaProducerService } from '../kafka/kafka-producer.service';
 
 @Injectable()
 export class PaymentService {

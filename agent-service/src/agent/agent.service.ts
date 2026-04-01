@@ -1,38 +1,40 @@
 import { Injectable } from '@nestjs/common';
-import axios from 'axios';
+import { DecisionEngine } from './decision/decision.engine';
+import { Order } from './types/order.types';
 
 @Injectable()
 export class AgentService {
-  async evaluateOrder(order: any): Promise<string> {
-    console.log('Order Recieved', order);
-    if (order.price < 1000) {
-      console.log('Early return for cheaper price.');
-      return 'APPROVE';
-    }
+  constructor(
+    private readonly decisionEngine: DecisionEngine,
+  ) {}
 
-    return this.callOllama(order);
-  }
+  async handleOrder(order: Order) {
+    const result = await this.decisionEngine.process(order);
 
-  private async callOllama(order: any): Promise<string> {
-    try {
-      console.log('Called agent', order);
-      const response = await axios.post('http://localhost:11434/api/generate', {
-        model: 'tinyllama',
-        prompt: `You are a decision engine.
+    console.log({
+      event: 'ORDER_PROCESSED',
+      orderId: order.id,
+      userId: order.userId,
+      price: order.price,
+      ruleDecision: result.ruleDecision,
+      llmDecision: result.llmDecision,
+      finalDecision: result.finalDecision,
+      timestamp: new Date().toISOString(),
+    });
 
-              Allowed outputs: APPROVE, REJECT, REVIEW
-
-              Output must be exactly one of these words.
-
-              Order price: ${order.price}
-              User: ${order.userId}`,
-        stream: false,
+    if (
+      result.llmDecision &&
+      result.ruleDecision !== 'APPROVE' &&
+      result.llmDecision !== result.ruleDecision
+    ) {
+      console.warn({
+        event: 'LLM_OVERRIDE_BLOCKED',
+        orderId: order.id,
+        ruleDecision: result.ruleDecision,
+        llmDecision: result.llmDecision,
       });
-      console.log(response.data);
-      return 'REVIEW';
-      // return response.data.response.trim().toUpperCase();
-    } catch {
-      return 'REVIEW';
     }
+
+    return result;
   }
 }
